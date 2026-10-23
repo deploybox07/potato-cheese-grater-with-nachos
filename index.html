@@ -3,125 +3,585 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Hosted YT Player</title>
+    <title>GitHub Hosted YT Player + Personalization</title>
     <style>
+        :root {
+            --bg: #121212;
+            --panel: #1d1d1d;
+            --panel-alt: #2a2a2a;
+            --text: #f4f4f4;
+            --muted: #b3b3b3;
+            --accent: #ff0000;
+            --accent-dark: #cc0000;
+            --border: #383838;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
+            margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
+            background: var(--bg);
+            color: var(--text);
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .app {
+            width: min(100%, 1080px);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
         }
-        .container {
-            max-width: 800px;
-            width: 100%;
-            text-align: center;
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: clamp(1.5rem, 2vw, 2.2rem);
         }
+
         .input-area {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
             margin-bottom: 20px;
         }
+
         input[type="text"] {
-            width: 70%;
-            padding: 10px;
+            flex: 1 1 420px;
+            min-width: 220px;
+            padding: 12px 14px;
             font-size: 16px;
-            border: 1px solid #333;
-            border-radius: 4px;
-            background-color: #222;
-            color: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #232323;
+            color: var(--text);
         }
+
         button {
-            padding: 10px 20px;
+            padding: 12px 20px;
             font-size: 16px;
-            background-color: #ff0000;
+            background: var(--accent);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
+            transition: background 0.2s ease;
         }
+
         button:hover {
-            background-color: #cc0000;
+            background: var(--accent-dark);
         }
+
+        .secondary {
+            background: var(--panel-alt);
+        }
+
+        .secondary:hover {
+            background: #3a3a3a;
+        }
+
         .video-container {
             position: relative;
             padding-bottom: 56.25%;
             height: 0;
             overflow: hidden;
-            background-color: #000;
-            border-radius: 8px;
+            background: #000;
+            border-radius: 10px;
+            border: 1px solid var(--border);
         }
-        .video-container iframe {
+
+        #ytPlayer {
             position: absolute;
-            top: 0;
-            left: 0;
+            inset: 0;
             width: 100%;
             height: 100%;
             border: 0;
+            border-radius: 10px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            color: var(--muted);
+        }
+
+        .status-row strong {
+            color: var(--text);
+        }
+
+        .recommendations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .rec-item {
+            background: #242424;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .rec-item:hover {
+            transform: translateY(-2px);
+            border-color: #5f5f5f;
+        }
+
+        .rec-thumb {
+            aspect-ratio: 16 / 9;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: end;
+            justify-content: start;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        .rec-meta {
+            padding: 10px 12px 12px;
+        }
+
+        .rec-title {
+            font-size: 0.96rem;
+            line-height: 1.3;
+            margin: 0 0 6px;
+        }
+
+        .rec-category {
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .small-muted {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 700px) {
+            .input-area {
+                display: block;
+            }
+
+            .input-area button {
+                width: 100%;
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="app">
+        <div class="panel">
+            <h2>Custom YouTube Player</h2>
 
-<div class="container">
-    <h2>Custom YouTube Player</h2>
+            <div class="input-area">
+                <input type="text" id="videoUrl" placeholder="Paste YouTube URL or Video ID here...">
+                <button onclick="loadVideoFromInput()">Load Video</button>
+                <button class="secondary" onclick="playRecommendedVideo()">Play Recommended</button>
+            </div>
 
-    <div class="input-area">
-        <input type="text" id="videoUrl" placeholder="Paste YouTube URL or Video ID here...">
-        <button onclick="loadVideo()">Load Video</button>
+            <div class="video-container">
+                <div id="ytPlayer"></div>
+            </div>
+
+            <div class="status-row">
+                <div><strong>Now playing:</strong> <span id="nowPlayingText">No video loaded</span></div>
+                <div class="small-muted" id="watchStatus">Watch history is local to this browser.</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Recommended for you</h2>
+            <div id="recommendations" class="recommendations"></div>
+        </div>
     </div>
 
-    <div class="video-container">
-        <iframe id="ytPlayer" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    </div>
-</div>
+    <script>
+        const STORAGE_KEY = 'yt_personalization_history_v1';
+        const RESUME_KEY = 'yt_personalization_resume_v1';
 
-<script>
-    function extractVideoId(input) {
-        const value = input.trim();
+        const VIDEO_CATALOG = [
+            { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', category: 'music', tags: ['pop','80s','dance'] },
+            { id: 'ysz5S6PUM-U', title: 'Marshmello - Alone', category: 'music', tags: ['electronic','dance','feel-good'] },
+            { id: 'ScMzIvxBSi4', title: 'Cinematic Piano 10 Hours', category: 'music', tags: ['piano','ambient','study'] },
+            { id: 'M7lc1UVf-VE', title: 'YouTube API Quickstart', category: 'tech', tags: ['programming','api','javascript'] },
+            { id: 'aqz-KE-bpKQ', title: 'HTML Crash Course', category: 'tech', tags: ['web','html','coding'] },
+            { id: '2Vv-BfVkR4g', title: 'Nature Timelapse', category: 'nature', tags: ['outdoors','wildlife','calm'] },
+            { id: 'L_jWHffIx5E', title: 'Relaxing Rain Sounds', category: 'nature', tags: ['rain','sleep','ambient'] },
+            { id: 'e-ORhEE9VVg', title: 'Space Documentary', category: 'documentary', tags: ['space','science','education'] },
+            { id: 'uA9qlL0nAq0', title: 'How to Learn Faster', category: 'learning', tags: ['focus','study','self-improvement'] }
+        ];
 
-        if (!value) return null;
+        const state = {
+            player: null,
+            currentVideoId: null,
+            lastProgress: 0,
+            progressTimer: null,
+            userHistory: [],
+            currentTitle: 'No video loaded'
+        };
 
-        if (/^[A-Za-z0-9_-]{11}$/.test(value)) {
-            return value;
-        }
+        function normalizeVideoId(value) {
+            if (!value) return null;
+            if (/^[A-Za-z0-9_-]{11}$/.test(value)) return value;
 
-        try {
-            const url = new URL(value.includes('://') ? value : `https://${value}`);
-            const hostname = url.hostname.replace(/^www\./, '');
+            try {
+                const url = new URL(value.includes('://') ? value : `https://${value}`);
+                const hostname = url.hostname.replace(/^www\./, '');
 
-            if (hostname === 'youtu.be') {
-                const path = url.pathname.replace('/', '');
-                if (/^[A-Za-z0-9_-]{11}$/.test(path)) return path;
+                if (hostname === 'youtu.be') {
+                    const path = url.pathname.replace('/', '');
+                    if (/^[A-Za-z0-9_-]{11}$/.test(path)) return path;
+                }
+
+                if (url.searchParams.get('v')) {
+                    const id = url.searchParams.get('v');
+                    if (/^[A-Za-z0-9_-]{11}$/.test(id)) return id;
+                }
+
+                const match = url.pathname.match(/(?:\/embed\/|\/shorts\/|\/v\/)([A-Za-z0-9_-]{11})/);
+                if (match) return match[1];
+            } catch (e) {
+                // noop
             }
 
-            if (url.searchParams.get('v')) {
-                const id = url.searchParams.get('v');
-                if (/^[A-Za-z0-9_-]{11}$/.test(id)) return id;
+            const match = value.match(/[A-Za-z0-9_-]{11}/);
+            return match ? match[0] : null;
+        }
+
+        function getCatalogEntry(videoId) {
+            return VIDEO_CATALOG.find((video) => normalizeVideoId(video.id) === normalizeVideoId(videoId)) || null;
+        }
+
+        function getHistory() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveHistory(history) {
+            state.userHistory = history;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            renderRecommendations();
+        }
+
+        function getResumeMap() {
+            try {
+                const raw = localStorage.getItem(RESUME_KEY);
+                const parsed = raw ? JSON.parse(raw) : {};
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveResume(videoId, progress) {
+            const resumeMap = getResumeMap();
+            resumeMap[videoId] = progress;
+            localStorage.setItem(RESUME_KEY, JSON.stringify(resumeMap));
+        }
+
+        function updateHistory(videoId, progressPercent, titleOverride = null) {
+            const history = getHistory();
+            const existing = history.find((entry) => entry.id === videoId);
+            const catalogEntry = getCatalogEntry(videoId) || { title: titleOverride || videoId, category: 'general', tags: [] };
+
+            const nextEntry = {
+                id: videoId,
+                title: titleOverride || catalogEntry.title,
+                category: catalogEntry.category,
+                tags: catalogEntry.tags || [],
+                lastWatched: Date.now(),
+                progress: Math.max(progressPercent, existing ? existing.progress || 0 : 0),
+                watchCount: existing ? existing.watchCount + 1 : 1
+            };
+
+            if (existing) {
+                const merged = history.filter((entry) => entry.id !== videoId);
+                merged.push(nextEntry);
+                saveHistory(merged);
+            } else {
+                saveHistory([...history, nextEntry]);
+            }
+        }
+
+        function normalizeText(value) {
+            return String(value || '').toLowerCase();
+        }
+
+        function scoreVideo(video, historyEntries) {
+            const seenIds = new Set(historyEntries.map((item) => item.id));
+            const historyByCategory = {};
+            const historyTags = {};
+
+            for (const entry of historyEntries) {
+                const category = entry.category || 'general';
+                historyByCategory[category] = (historyByCategory[category] || 0) + (entry.watchCount || 1);
+
+                for (const tag of entry.tags || []) {
+                    historyTags[normalizeText(tag)] = (historyTags[normalizeText(tag)] || 0) + 1;
+                }
             }
 
-            const pathMatch = url.pathname.match(/(?:\/embed\/|\/shorts\/|\/v\/)([A-Za-z0-9_-]{11})/);
-            if (pathMatch) return pathMatch[1];
-        } catch (e) {
-            // noop
+            const currentVideoId = normalizeVideoId(video.id);
+            if (seenIds.has(currentVideoId)) {
+                return -999;
+            }
+
+            let score = 0;
+            const videoCategory = video.category || 'general';
+            const videoTags = Array.isArray(video.tags) ? video.tags : [];
+
+            if (historyByCategory[videoCategory]) {
+                score += historyByCategory[videoCategory] * 5;
+            }
+
+            for (const tag of videoTags) {
+                const tagLower = normalizeText(tag);
+                if (historyTags[tagLower]) {
+                    score += historyTags[tagLower] * 2;
+                }
+            }
+
+            score += 2;
+            return score;
         }
 
-        const match = value.match(/[A-Za-z0-9_-]{11}/);
-        return match ? match[0] : null;
-    }
+        function renderRecommendations() {
+            const recommendationsEl = document.getElementById('recommendations');
+            const historyEntries = getHistory();
+            let pool = [...VIDEO_CATALOG];
+            pool = pool
+                .map((video) => ({ video, score: scoreVideo(video, historyEntries) }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 6)
+                .map((item) => item.video);
 
-    function loadVideo() {
-        const input = document.getElementById('videoUrl').value;
-        const videoId = extractVideoId(input);
-        const player = document.getElementById('ytPlayer');
+            if (!pool.length) {
+                pool = VIDEO_CATALOG.slice(0, 6);
+            }
 
-        if (videoId) {
-            player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1`;
-        } else {
-            alert('Please enter a valid YouTube URL or 11-digit Video ID.');
+            recommendationsEl.innerHTML = pool.map((video) => {
+                const id = normalizeVideoId(video.id);
+                const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+                return `
+                    <div class="rec-item" data-video-id="${id}" onclick="playVideoById('${id}')">
+                        <div class="rec-thumb" style="background-image:url('${thumb}')">
+                            <span>${video.category}</span>
+                        </div>
+                        <div class="rec-meta">
+                            <p class="rec-title">${video.title}</p>
+                            <div class="rec-category">${video.category}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
-    }
-</script>
 
+        function setupYouTubePlayer() {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        function onYouTubeIframeAPIReady() {
+            state.player = new YT.Player('ytPlayer', {
+                height: '390',
+                width: '640',
+                playerVars: {
+                    autoplay: 1,
+                    rel: 0,
+                    playsinline: 1,
+                    modestbranding: 1,
+                    enablejsapi: 1
+                },
+                events: {
+                    onReady: onPlayerReady,
+                    onStateChange: onPlayerStateChange,
+                    onError: onPlayerError
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            const resumeMap = getResumeMap();
+            const fallbackVideoId = 'dQw4w9WgXcQ';
+            const preferredId = Object.keys(resumeMap).length ? Object.keys(resumeMap)[0] : fallbackVideoId;
+            loadVideo(preferredId, true, true);
+        }
+
+        function onPlayerError(event) {
+            console.warn('YouTube player error:', event.data);
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                startProgressTracker();
+                const videoId = state.currentVideoId;
+                const title = state.currentTitle;
+                document.getElementById('nowPlayingText').textContent = title;
+
+                const resumeMap = getResumeMap();
+                if (videoId && resumeMap[videoId]) {
+                    const savedProgress = Number(resumeMap[videoId]) || 0;
+                    if (savedProgress > 0.05) {
+                        state.player.seekTo(savedProgress * state.player.getDuration(), true);
+                        delete resumeMap[videoId];
+                        localStorage.setItem(RESUME_KEY, JSON.stringify(resumeMap));
+                    }
+                }
+            }
+
+            if (event.data === YT.PlayerState.PAUSED) {
+                stopProgressTracker();
+                persistCurrentProgress();
+            }
+
+            if (event.data === YT.PlayerState.ENDED) {
+                stopProgressTracker();
+                persistCurrentProgress(1);
+                const recommendation = getRecommendedVideo();
+                if (recommendation) {
+                    setTimeout(() => playVideoById(recommendation.id), 1000);
+                }
+            }
+        }
+
+        function startProgressTracker() {
+            stopProgressTracker();
+            state.progressTimer = setInterval(() => {
+                if (!state.player || !state.currentVideoId) return;
+                const currentTime = Number(state.player.getCurrentTime()) || 0;
+                const duration = Number(state.player.getDuration()) || 0;
+                if (!duration) return;
+
+                const progressRatio = Math.min(currentTime / duration, 1);
+                state.lastProgress = progressRatio;
+                saveResume(state.currentVideoId, progressRatio);
+
+                if (progressRatio > 0.3) {
+                    updateHistory(state.currentVideoId, progressRatio, state.currentTitle);
+                }
+            }, 2000);
+        }
+
+        function stopProgressTracker() {
+            if (state.progressTimer) {
+                clearInterval(state.progressTimer);
+                state.progressTimer = null;
+            }
+        }
+
+        function persistCurrentProgress(finalProgress = null) {
+            if (!state.player || !state.currentVideoId) return;
+            const currentTime = Number(state.player.getCurrentTime()) || 0;
+            const duration = Number(state.player.getDuration()) || 0;
+            const ratio = finalProgress !== null ? finalProgress : (duration ? currentTime / duration : 0);
+            saveResume(state.currentVideoId, ratio);
+            updateHistory(state.currentVideoId, ratio, state.currentTitle);
+        }
+
+        function getRecommendedVideo() {
+            const history = getHistory();
+            const candidates = VIDEO_CATALOG.filter((video) => !history.some((entry) => normalizeVideoId(entry.id) === normalizeVideoId(video.id)));
+
+            if (!candidates.length) {
+                return VIDEO_CATALOG[0];
+            }
+
+            return candidates
+                .map((video) => ({ video, score: scoreVideo(video, history) }))
+                .sort((a, b) => b.score - a.score)[0].video;
+        }
+
+        function playVideoById(videoId) {
+            const normalized = normalizeVideoId(videoId);
+            if (!normalized) {
+                alert('Please enter a valid YouTube URL or 11-digit Video ID.');
+                return;
+            }
+            loadVideo(normalized, true, false);
+        }
+
+        function loadVideo(videoId, autoplay = true, isInitialLoad = false) {
+            if (!state.player) {
+                const fallback = normalizeVideoId(videoId || 'dQw4w9WgXcQ');
+                state.currentVideoId = fallback;
+                state.currentTitle = getCatalogEntry(fallback)?.title || 'YouTube video';
+                document.getElementById('ytPlayer').src = `https://www.youtube.com/embed/${fallback}?autoplay=${autoplay ? 1 : 0}&rel=0&playsinline=1&enablejsapi=1`;
+                return;
+            }
+
+            state.currentVideoId = normalizeVideoId(videoId);
+            const entry = getCatalogEntry(state.currentVideoId) || { title: 'YouTube video', category: 'general', tags: [] };
+            state.currentTitle = entry.title || 'YouTube video';
+            document.getElementById('nowPlayingText').textContent = state.currentTitle;
+
+            state.player.loadVideoById({
+                videoId: state.currentVideoId,
+                startSeconds: 0,
+                suggestedQuality: 'hd720'
+            });
+
+            if (autoplay) {
+                state.player.playVideo();
+            }
+
+            if (!isInitialLoad) {
+                updateHistory(state.currentVideoId, 0.05, state.currentTitle);
+            }
+        }
+
+        function loadVideoFromInput() {
+            const input = document.getElementById('videoUrl').value;
+            const videoId = normalizeVideoId(input);
+            if (!videoId) {
+                alert('Please enter a valid YouTube URL or 11-digit Video ID.');
+                return;
+            }
+            loadVideo(videoId, true, false);
+        }
+
+        function playRecommendedVideo() {
+            const recommendation = getRecommendedVideo();
+            if (!recommendation) {
+                alert('No recommendations available yet.');
+                return;
+            }
+            playVideoById(recommendation.id);
+        }
+
+        function initialize() {
+            renderRecommendations();
+            setupYouTubePlayer();
+        }
+
+        document.addEventListener('DOMContentLoaded', initialize);
+        window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+    </script>
 </body>
 </html>
