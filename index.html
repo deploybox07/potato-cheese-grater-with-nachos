@@ -45,7 +45,7 @@
         }
         .video-container {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            padding-bottom: 56.25%;
             height: 0;
             overflow: hidden;
             background-color: #000;
@@ -65,30 +65,49 @@
 
 <div class="container">
     <h2>Custom YouTube Player</h2>
-    
+
     <div class="input-area">
         <input type="text" id="videoUrl" placeholder="Paste YouTube URL or Video ID here...">
         <button onclick="loadVideo()">Load Video</button>
     </div>
 
     <div class="video-container">
-        <!-- The iframe starts with a placeholder or empty, and updates via JavaScript -->
         <iframe id="ytPlayer" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
 </div>
 
 <script>
-    function extractVideoId(url) {
-        // Regular expression to extract the YouTube Video ID from various URL formats
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-        
-        if (match && match[2].length === 11) {
-            return match[2];
-        } else {
-            // If it's already just the 11-character ID
-            return url.trim().length === 11 ? url.trim() : null;
+    function extractVideoId(input) {
+        const value = input.trim();
+
+        if (!value) return null;
+
+        if (/^[A-Za-z0-9_-]{11}$/.test(value)) {
+            return value;
         }
+
+        try {
+            const url = new URL(value.includes('://') ? value : `https://${value}`);
+            const hostname = url.hostname.replace(/^www\./, '');
+
+            if (hostname === 'youtu.be') {
+                const path = url.pathname.replace('/', '');
+                if (/^[A-Za-z0-9_-]{11}$/.test(path)) return path;
+            }
+
+            if (url.searchParams.get('v')) {
+                const id = url.searchParams.get('v');
+                if (/^[A-Za-z0-9_-]{11}$/.test(id)) return id;
+            }
+
+            const pathMatch = url.pathname.match(/(?:\/embed\/|\/shorts\/|\/v\/)([A-Za-z0-9_-]{11})/);
+            if (pathMatch) return pathMatch[1];
+        } catch (e) {
+            // noop
+        }
+
+        const match = value.match(/[A-Za-z0-9_-]{11}/);
+        return match ? match[0] : null;
     }
 
     function loadVideo() {
@@ -97,8 +116,7 @@
         const player = document.getElementById('ytPlayer');
 
         if (videoId) {
-            // Update the iframe source to the embedded version of the video
-            player.src = `https://youtube.com{videoId}?autoplay=1`;
+            player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1`;
         } else {
             alert('Please enter a valid YouTube URL or 11-digit Video ID.');
         }
