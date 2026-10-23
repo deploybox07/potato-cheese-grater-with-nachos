@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Hosted YT Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        .input-area {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #222;
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            background-color: #000;
+            border-radius: 8px;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Custom YouTube Player</h2>
+
+    <div class="input-area">
+        <input type="text" id="videoUrl" placeholder="Paste YouTube URL or Video ID here...">
+        <button onclick="loadVideo()">Load Video</button>
+    </div>
+
+    <div class="video-container">
+        <iframe id="ytPlayer" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+</div>
+
+<script>
+    function extractVideoId(input) {
+        const value = input.trim();
+
+        if (!value) return null;
+
+        if (/^[A-Za-z0-9_-]{11}$/.test(value)) {
+            return value;
+        }
+
+        try {
+            const url = new URL(value.includes('://') ? value : `https://${value}`);
+            const hostname = url.hostname.replace(/^www\./, '');
+
+            if (hostname === 'youtu.be') {
+                const path = url.pathname.replace('/', '');
+                if (/^[A-Za-z0-9_-]{11}$/.test(path)) return path;
+            }
+
+            if (url.searchParams.get('v')) {
+                const id = url.searchParams.get('v');
+                if (/^[A-Za-z0-9_-]{11}$/.test(id)) return id;
+            }
+
+            const pathMatch = url.pathname.match(/(?:\/embed\/|\/shorts\/|\/v\/)([A-Za-z0-9_-]{11})/);
+            if (pathMatch) return pathMatch[1];
+        } catch (e) {
+            // noop
+        }
+
+        const match = value.match(/[A-Za-z0-9_-]{11}/);
+        return match ? match[0] : null;
+    }
+
+    function loadVideo() {
+        const input = document.getElementById('videoUrl').value;
+        const videoId = extractVideoId(input);
+        const player = document.getElementById('ytPlayer');
+
+        if (videoId) {
+            player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1`;
+        } else {
+            alert('Please enter a valid YouTube URL or 11-digit Video ID.');
+        }
+    }
+</script>
+
+</body>
+</html>
